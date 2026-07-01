@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PAXG NW Envelope Bot</title>
+<meta name="theme-color" content="#0A0D12">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --bg:#0A0D12; --bg-elev:#10141B;
+    --glass:rgba(255,255,255,0.035); --glass-2:rgba(255,255,255,0.055); --glass-border:rgba(255,255,255,0.07);
+    --gold:#F5C542; --gold-soft:rgba(245,197,66,0.12);
+    --green:#00D26A; --green-soft:rgba(0,210,106,0.12);
+    --red:#FF4D5E; --red-soft:rgba(255,77,94,0.12);
+    --blue:#4C8DFF; --blue-soft:rgba(76,141,255,0.12);
+    --text:#EDF1F5; --dim:#8A93A3; --faint:#525C6B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{background:var(--bg);}
+  body{color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:30px;}
+  body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(circle at 15% 0%, rgba(245,197,66,.07) 0%, transparent 45%),radial-gradient(circle at 90% 15%, rgba(76,141,255,.05) 0%, transparent 40%);}
+  .app{max-width:480px;margin:0 auto;padding:18px 16px 90px;position:relative;z-index:1;}
+  .glass{background:var(--glass);border:1px solid var(--glass-border);border-radius:24px;backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);box-shadow:0 8px 32px rgba(0,0,0,.35);}
+
+  .nav-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;}
+  .nav-tab{background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:10px 4px;cursor:pointer;text-align:center;font-size:11px;color:var(--dim);font-weight:700;letter-spacing:.5px;transition:all .25s;}
+  .nav-tab.active{border-color:var(--gold);color:var(--gold);background:var(--gold-soft);}
+  .page{display:none;} .page.active{display:block;}
+
+  .stat-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .stat-card{padding:16px;text-align:center;}
+  .stat-card-lbl{font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;font-weight:600;margin-bottom:8px;}
+  .stat-card-val{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;}
+  .stat-card.green .stat-card-val{color:var(--green);}
+  .stat-card.red .stat-card-val{color:var(--red);}
+  .stat-card.blue .stat-card-val{color:var(--blue);}
+  .stat-card.gold .stat-card-val{color:var(--gold);}
+
+  .filter-row{display:flex;gap:8px;margin-bottom:14px;}
+  .filter-chip{flex:1;text-align:center;padding:10px;border-radius:14px;font-size:12px;font-weight:700;color:var(--dim);cursor:pointer;background:var(--glass);border:1px solid var(--glass-border);}
+  .filter-chip.active{background:var(--blue-soft);color:var(--blue);border-color:rgba(76,141,255,.25);}
+
+  .j-item{padding:14px 16px;margin-bottom:10px;position:relative;overflow:hidden;}
+  .j-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 4px 4px 0;}
+  .j-item.win::before{background:var(--green);}
+  .j-item.loss::before{background:var(--red);}
+  .j-item.open::before{background:var(--blue);}
+  .j-item.manual::before{background:var(--gold);}
+  .j-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .j-sym{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;}
+  .j-badge{font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:10px;}
+  .j-badge.win{background:var(--green-soft);color:var(--green);}
+  .j-badge.loss{background:var(--red-soft);color:var(--red);}
+  .j-badge.open{background:var(--blue-soft);color:var(--blue);}
+  .j-badge.manual{background:var(--gold-soft);color:var(--gold);}
+  .j-prices{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+  .j-pbox{text-align:center;}
+  .j-plbl{font-size:9px;color:var(--faint);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;font-weight:600;}
+  .j-pval{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;}
+  .j-bottom{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--dim);}
+  .empty-state{text-align:center;padding:50px 24px;color:var(--dim);}
+  .empty-state .ic{font-size:34px;margin-bottom:10px;}
+  .empty-state p{font-size:13px;line-height:1.6;}
+  .clear-link{display:block;text-align:center;padding:13px;margin-top:6px;color:var(--red);font-size:12.5px;font-weight:700;cursor:pointer;}
+
+  .bottom-nav{
+    position:fixed;bottom:14px;left:0;right:0;max-width:440px;margin:0 auto;
+    display:flex;justify-content:space-around;padding:10px 8px;border-radius:24px;
+    background:rgba(16,20,27,.85);border:1px solid var(--glass-border);
+    backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+    box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:50;
+  }
+  .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 22px;border-radius:16px;cursor:pointer;transition:all .25s;color:var(--faint);}
+  .nav-item .nav-ic{font-size:19px;line-height:1;}
+  .nav-item .nav-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;}
+  .nav-item.active{color:var(--gold);background:var(--gold-soft);}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:2px 4px;}
+  .brand{display:flex;align-items:center;gap:9px;}
+  .brand-mark{width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,var(--gold),rgba(245,197,66,.4));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#0A0D12;font-family:'Space Grotesk',sans-serif;}
+  .brand-text h1{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;letter-spacing:-.2px;}
+  .brand-text p{font-size:10.5px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+  .ws-pill{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:14px;font-size:11px;font-weight:600;color:var(--dim);}
+  .ws-dot{width:7px;height:7px;border-radius:50%;background:var(--faint);}
+  .ws-dot.connected{background:var(--green);box-shadow:0 0 8px var(--green);animation:softpulse 2s infinite;}
+  .ws-dot.connecting{background:var(--gold);animation:softpulse 1s infinite;}
+  .ws-dot.disconnected{background:var(--red);}
+  @keyframes softpulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .hero{padding:22px;margin-bottom:14px;position:relative;overflow:hidden;}
+  .hero::after{content:'';position:absolute;top:-40%;right:-20%;width:60%;height:140%;border-radius:50%;opacity:.10;filter:blur(40px);background:var(--gold);pointer-events:none;}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .hero-label{font-size:11px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;font-weight:600;}
+  .hero-price{font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-1px;margin-top:4px;color:var(--gold);}
+  .hero-change{font-size:13px;font-weight:700;padding:6px 12px;border-radius:12px;font-family:'Space Grotesk',sans-serif;}
+  .hero-change.pos{background:var(--green-soft);color:var(--green);}
+  .hero-change.neg{background:var(--red-soft);color:var(--red);}
+  .hero-change.neutral{background:var(--glass-2);color:var(--dim);}
+  .hero-meta{font-size:11px;color:var(--dim);}
+  .hero-meta b{color:var(--text);font-weight:600;}
+
+  .signal-card{padding:22px;margin-bottom:14px;}
+  .signal-row{display:flex;align-items:center;gap:16px;}
+  .signal-icon{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+  .signal-icon.buy{background:var(--green-soft);}
+  .signal-icon.wait{background:var(--gold-soft);}
+  .signal-icon.no{background:var(--red-soft);}
+  .signal-icon.loading{background:var(--glass-2);}
+  .signal-info{flex:1;min-width:0;}
+  .signal-status{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:800;margin-bottom:3px;}
+  .signal-status.buy{color:var(--green);}
+  .signal-status.no{color:var(--red);}
+  .signal-status.wait{color:var(--gold);}
+  .signal-status.loading{color:var(--dim);}
+  .signal-status.tphit{color:var(--green);}
+  .signal-status.slhit{color:var(--red);}
+  .signal-sub{font-size:12.5px;color:var(--dim);line-height:1.5;}
+  .reason-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .reason-tag{font-size:10.5px;font-weight:600;padding:5px 10px;border-radius:10px;background:var(--glass-2);color:var(--dim);}
+  .reason-tag.ok{background:var(--green-soft);color:var(--green);}
+  .reason-tag.bad{background:var(--red-soft);color:var(--red);}
+
+  .trade-card{padding:20px;margin-bottom:14px;border:1px solid rgba(0,210,106,.25);position:relative;overflow:hidden;}
+  .trade-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .trade-head-l{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:1.5px;color:var(--green);font-weight:700;text-transform:uppercase;}
+  .live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:softpulse 1.2s infinite;box-shadow:0 0 8px var(--green);}
+  .trade-elapsed{font-size:11px;color:var(--dim);font-weight:600;}
+  .trade-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+  .trade-cell{background:var(--glass-2);border-radius:14px;padding:11px 6px;text-align:center;}
+  .trade-cell-lbl{font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:5px;font-weight:600;}
+  .trade-cell-val{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;}
+  .trade-cell.entry .trade-cell-val{color:var(--blue);}
+  .trade-cell.tp .trade-cell-val{color:var(--green);}
+  .trade-cell.sl .trade-cell-val{color:var(--red);}
+  .pnl-track{height:8px;border-radius:5px;background:var(--glass-2);overflow:hidden;margin-bottom:8px;}
+  .pnl-fill{height:100%;border-radius:5px;transition:width .3s,background .3s;}
+  .pnl-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);font-weight:600;letter-spacing:1px;margin-bottom:14px;}
+  .pnl-live{display:flex;justify-content:space-between;align-items:center;background:var(--glass-2);border-radius:14px;padding:13px 16px;margin-bottom:12px;}
+  .pnl-live-lbl{font-size:12px;color:var(--dim);font-weight:600;}
+  .pnl-live-val{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;}
+  .pnl-live-val.pos{color:var(--green);}
+  .pnl-live-val.neg{color:var(--red);}
+  .close-btn{width:100%;background:var(--red-soft);border:1px solid rgba(255,77,94,.25);border-radius:14px;color:var(--red);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;padding:13px;cursor:pointer;letter-spacing:.5px;}
+
+  .section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 4px 10px;}
+  .section-title h3{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;letter-spacing:.3px;}
+  .section-title span{font-size:10.5px;color:var(--faint);font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+
+  .ind-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;}
+  .ind-card{padding:14px;}
+  .ind-card-lbl{font-size:10px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+  .ind-card-val{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;}
+  .ind-badge{font-size:10px;padding:3px 8px;border-radius:8px;font-weight:700;}
+  .ind-badge.ok{background:var(--green-soft);color:var(--green);}
+  .ind-badge.bad{background:var(--red-soft);color:var(--red);}
+  .ind-badge.neu{background:var(--glass-2);color:var(--dim);}
+
+  .checklist{padding:6px 18px;margin-bottom:14px;}
+  .check-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--glass-border);}
+  .check-row:last-child{border-bottom:none;}
+  .check-icon{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;font-weight:800;}
+  .check-icon.pass{background:var(--green-soft);color:var(--green);}
+  .check-icon.fail{background:var(--red-soft);color:var(--red);}
+  .check-icon.pending{background:var(--gold-soft);color:var(--gold);}
+  .check-text{flex:1;font-size:13px;color:var(--text);font-weight:500;}
+  .check-text.fail{color:var(--faint);}
+  .check-val{font-family:'Space Grotesk',sans-serif;font-size:11.5px;color:var(--dim);font-weight:600;}
+
+  .settings-row{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;margin-bottom:10px;}
+  .settings-left{display:flex;align-items:center;gap:12px;}
+  .settings-icon{width:38px;height:38px;border-radius:12px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .settings-text h4{font-size:13px;font-weight:700;margin-bottom:2px;}
+  .settings-text p{font-size:11px;color:var(--dim);}
+  .pill-btn{padding:8px 16px;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--glass-border);background:var(--glass-2);color:var(--dim);font-family:'Inter',sans-serif;}
+  .pill-btn.on{background:var(--green-soft);color:var(--green);border-color:rgba(0,210,106,.25);}
+  .auto-toggle{width:46px;height:26px;border-radius:14px;background:var(--glass-2);border:1px solid var(--glass-border);position:relative;cursor:pointer;}
+  .auto-toggle::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform .3s;box-shadow:0 2px 6px rgba(0,0,0,.3);}
+  .auto-toggle.on{background:var(--gold);}
+  .auto-toggle.on::after{transform:translateX(20px);}
+  .timestamp{text-align:center;font-size:11px;color:var(--faint);margin:14px 0 6px;font-weight:500;}
+
+  .strategy-info{padding:16px 18px;margin-bottom:14px;}
+  .strategy-info h4{font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;letter-spacing:.3px;}
+  .strategy-info p{font-size:11.5px;color:var(--dim);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="page active" id="signalPage">
+    <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">⬡</div>
+      <div class="brand-text"><h1>PAXG / USDT</h1><p>NW Envelope · 5M</p></div>
+    </div>
+    <div class="ws-pill glass">
+      <div class="ws-dot connecting" id="wsDot"></div>
+      <span id="wsText">Connecting</span>
+    </div>
+  </div>
+
+  <div class="hero glass">
+    <div class="hero-top">
+      <div>
+        <div class="hero-label">Current Price</div>
+        <div class="hero-price" id="price">$ ----.--</div>
+      </div>
+      <div class="hero-change neutral" id="change">--%</div>
+    </div>
+    <div class="hero-meta">5m candle · <b id="candleTime">--</b></div>
+  </div>
+
+  <div class="signal-card glass">
+    <div class="signal-row">
+      <div class="signal-icon loading" id="signalIcon">⏳</div>
+      <div class="signal-info">
+        <div class="signal-status loading" id="signalStatus">Loading</div>
+        <div class="signal-sub" id="signalSub">Connecting to market data...</div>
+        <div class="reason-tags" id="reasonTags"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trade-card glass" id="tradeCard" style="display:none">
+    <div class="trade-head">
+      <div class="trade-head-l"><div class="live-dot"></div>TRADE ACTIVE</div>
+      <div class="trade-elapsed" id="elapsed">just now</div>
+    </div>
+    <div class="trade-grid3">
+      <div class="trade-cell entry"><div class="trade-cell-lbl">Entry</div><div class="trade-cell-val" id="entryPx">---</div></div>
+      <div class="trade-cell tp"><div class="trade-cell-lbl">Take Profit</div><div class="trade-cell-val" id="tpLock">---</div></div>
+      <div class="trade-cell sl"><div class="trade-cell-lbl">Stop Loss</div><div class="trade-cell-val" id="slLock">---</div></div>
+    </div>
+    <div class="pnl-track"><div class="pnl-fill" id="progressFill" style="width:50%;background:var(--blue)"></div></div>
+    <div class="pnl-labels"><span>SL</span><span id="pnlPct">0.00%</span><span>TP</span></div>
+    <div class="pnl-live"><div class="pnl-live-lbl">Live P&L</div><div class="pnl-live-val" id="pnlVal">+0.00%</div></div>
+    <button class="close-btn" onclick="closeTrade('manual')">✕ CLOSE TRADE MANUALLY</button>
+  </div>
+
+  <div class="section-title"><h3>Indicators</h3><span>5M</span></div>
+  <div class="ind-grid">
+    <div class="ind-card glass">
+      <div class="ind-card-lbl">NW Lower Band <span class="ind-badge neu" id="nwLowerS">--</span></div>
+      <div class="ind-card-val" id="nwLower">---</div>
+    </div>
+    <div class="ind-card glass">
+      <div class="ind-card-lbl">NW Upper Band <span class="ind-badge neu" id="nwUpperS">--</span></div>
+      <div class="ind-card-val" id="nwUpper">---</div>
+    </div>
+    <div class="ind-card glass">
+      <div class="ind-card-lbl">ATR Lower <span class="ind-badge neu" id="atrLowerS">--</span></div>
+      <div class="ind-card-val" id="atrLower">---</div>
+    </div>
+    <div class="ind-card glass">
+      <div class="ind-card-lbl">RSI (6) <span class="ind-badge neu" id="rsiS">--</span></div>
+      <div class="ind-card-val" id="rsiVal">---</div>
+    </div>
+  </div>
+
+  <div class="section-title"><h3>Entry Conditions</h3><span id="condCount">0/3</span></div>
+  <div class="checklist glass" id="checklist"></div>
+
+  <div class="settings-row glass">
+    <div class="settings-left">
+      <div class="settings-icon">🔔</div>
+      <div class="settings-text"><h4>Buy Notifications</h4><p id="notifStatus">Tap enable to allow</p></div>
+    </div>
+    <button class="pill-btn" id="notifBtn" onclick="requestNotif()">Enable</button>
+  </div>
+  <div class="settings-row glass">
+    <div class="settings-left">
+      <div class="settings-icon">🔄</div>
+      <div class="settings-text"><h4>Auto Refresh</h4><p>Indicators every 10s</p></div>
+    </div>
+    <div class="auto-toggle on" id="autoToggle" onclick="toggleAuto()"></div>
+  </div>
+
+  <div class="strategy-info glass">
+    <h4>📐 Strategy Logic</h4>
+    <p>
+      <b>Live Setup:</b> The instant live price touches/crosses the NW lower band (LuxAlgo, bandwidth 8, mult 3) AND live RSI(6) drops below 30 — the setup locks immediately and freezes, even if RSI or price recover afterward.<br><br>
+      <b>Confirmation:</b> If the locked candle closes bullish → BUY instantly. If it closes bearish, one extra candle is allowed — bullish close there also triggers BUY. Two bearish closes in a row expires the setup.<br><br>
+      <b>Stop Loss:</b> $1.00 below the live candle's low minus ATR(14, Wilder) × 0.5.<br><br>
+      <b>Take Profit:</b> Fixed 1:1 Risk:Reward — same distance as SL, above entry.
+    </p>
+  </div>
+
+  <div class="timestamp" id="updateTime">Waiting for first update...</div>
+  </div>
+
+  <!-- JOURNAL PAGE -->
+  <div class="page" id="journalPage">
+    <div class="stat-grid2">
+      <div class="stat-card glass green"><div class="stat-card-lbl">✅ Wins</div><div class="stat-card-val" id="jWins">0</div></div>
+      <div class="stat-card glass red"><div class="stat-card-lbl">❌ Losses</div><div class="stat-card-val" id="jLosses">0</div></div>
+      <div class="stat-card glass blue"><div class="stat-card-lbl">🎯 Win Rate</div><div class="stat-card-val" id="jWinRate">0%</div></div>
+      <div class="stat-card glass gold"><div class="stat-card-lbl">💰 Net P&L</div><div class="stat-card-val" id="jTotalPnl">0%</div></div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-chip active" id="filterAll" onclick="filterJournal('all')">All</div>
+      <div class="filter-chip" id="filterWin" onclick="filterJournal('win')">Wins</div>
+      <div class="filter-chip" id="filterLoss" onclick="filterJournal('loss')">Losses</div>
+    </div>
+    <div id="journalList"></div>
+    <div class="clear-link" onclick="clearJournal()">Clear All History</div>
+  </div>
+
+  <!-- STATS PAGE -->
+  <div class="page" id="statsPage">
+    <div class="section-title" style="margin-top:0"><h3>Today</h3></div>
+    <div class="stat-grid2">
+      <div class="stat-card glass"><div class="stat-card-lbl">Trades</div><div class="stat-card-val" id="todayTrades">0</div></div>
+      <div class="stat-card glass gold"><div class="stat-card-lbl">Net P&L</div><div class="stat-card-val" id="todayPnl">0%</div></div>
+    </div>
+    <div class="section-title"><h3>All Time</h3></div>
+    <div class="stat-grid2">
+      <div class="stat-card glass"><div class="stat-card-lbl">Trades</div><div class="stat-card-val" id="allTrades">0</div></div>
+      <div class="stat-card glass gold"><div class="stat-card-lbl">Net P&L</div><div class="stat-card-val" id="allPnl">0%</div></div>
+    </div>
+    <div class="section-title"><h3>Best / Worst</h3></div>
+    <div class="settings-row glass">
+      <div class="settings-text"><h4>Best Trade</h4><p>Single highest gain</p></div>
+      <div class="stat-card-val" style="font-size:16px;color:var(--green)" id="bestTrade">---</div>
+    </div>
+    <div class="settings-row glass">
+      <div class="settings-text"><h4>Worst Trade</h4><p>Single largest loss</p></div>
+      <div class="stat-card-val" style="font-size:16px;color:var(--red)" id="worstTrade">---</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" id="navSignalBtn" onclick="showPage('signal')">
+    <div class="nav-ic">📡</div><div class="nav-lbl">Signals</div>
+  </div>
+  <div class="nav-item" id="navJournalBtn" onclick="showPage('journal')">
+    <div class="nav-ic">📋</div><div class="nav-lbl">Journal</div>
+  </div>
+  <div class="nav-item" id="navStatsBtn" onclick="showPage('stats')">
+    <div class="nav-ic">📊</div><div class="nav-lbl">Stats</div>
+  </div>
+</div>
+
+<script>
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(r=>{window._sw=r;}).catch(()=>{});
+
+// ===== SOUND =====
+let audioCtx=null;
+function unlockAudio(){ if(!audioCtx){try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}} }
+function playAlertSound(type){
+  unlockAudio(); if(!audioCtx) return;
+  try{
+    const now=audioCtx.currentTime;
+    const freqs = type==='buy'?[880,1108,1318]:type==='tp'?[1318,1568,1760]:[440,330];
+    freqs.forEach((f,i)=>{
+      const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+      osc.type='sine'; osc.frequency.value=f;
+      gain.gain.setValueAtTime(0.001, now+i*0.18);
+      gain.gain.exponentialRampToValueAtTime(0.35, now+i*0.18+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now+i*0.18+0.32);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now+i*0.18); osc.stop(now+i*0.18+0.34);
+    });
+  }catch(e){}
+}
+document.addEventListener('click', unlockAudio, {once:true});
+document.addEventListener('touchstart', unlockAudio, {once:true});
+
+// ===== STORAGE =====
+function saveState(){ try{localStorage.setItem('nwBotTrade',JSON.stringify(trade));}catch(e){} }
+function loadState(){ try{const s=localStorage.getItem('nwBotTrade');if(s)Object.assign(trade,JSON.parse(s));}catch(e){} }
+
+let trade = {active:false, entry:0, tp:0, sl:0, ts:0};
+let autoOn = true;
+let autoInterval = null;
+let ws = null;
+let livePrice = 0;
+
+loadState();
+
+// ===== WEBSOCKET =====
+function connectWS(){
+  if(ws) try{ws.close();}catch(e){}
+  ws = new WebSocket('wss://stream.binance.com:9443/ws/paxgusdt@trade');
+  ws.onopen = ()=>{ document.getElementById('wsDot').className='ws-dot connected'; document.getElementById('wsText').textContent='Live'; };
+  ws.onmessage = (e)=>{
+    try{
+      const d = JSON.parse(e.data);
+      const price = parseFloat(d.p);
+      if(!price) return;
+      livePrice = price;
+      document.getElementById('price').textContent = '$ '+price.toFixed(2);
+      if(trade.active) updateTradePnl(price);
+    }catch(err){}
+  };
+  ws.onerror = ()=>{ document.getElementById('wsDot').className='ws-dot disconnected'; document.getElementById('wsText').textContent='Retrying'; };
+  ws.onclose = ()=>{ document.getElementById('wsDot').className='ws-dot disconnected'; document.getElementById('wsText').textContent='Reconnecting'; setTimeout(connectWS, 3000); };
+}
+
+function toggleAuto(){
+  autoOn=!autoOn;
+  const tg=document.getElementById('autoToggle');
+  if(autoOn){tg.classList.add('on');startAuto();}
+  else{tg.classList.remove('on');clearInterval(autoInterval);}
+}
+function startAuto(){clearInterval(autoInterval);autoInterval=setInterval(fetchData,10000);}
+
+// ===== NOTIFICATIONS =====
+async function requestNotif(){
+  if(!('Notification' in window)) return;
+  unlockAudio();
+  const p=await Notification.requestPermission();
+  if(p==='granted'){
+    document.getElementById('notifBtn').textContent='✓ On';
+    document.getElementById('notifBtn').classList.add('on');
+    document.getElementById('notifStatus').textContent='Server notifications active!';
+    playAlertSound('buy');
+    subscribeToServer();
+  }
+}
+function sendNotif(title,body,kind){
+  playAlertSound(kind||'buy');
+  if(Notification.permission!=='granted') return;
+  const opts={body,vibrate:[300,100,300,100,300],requireInteraction:true,tag:'signal-'+Date.now(),icon:'icon-192.png',badge:'icon-192.png'};
+  try{
+    if(window._sw) window._sw.showNotification(title,opts);
+    else new Notification(title,opts);
+  }catch(e){}
+}
+
+// ===== INDICATOR MATH =====
+// NOTE: NW Envelope, ATR Bands, and RSI are now calculated EXCLUSIVELY on the
+// backend (server.js) using the Pine-Script-accurate LuxAlgo formulas and the
+// live WebSocket state machine. This frontend used to run its OWN copies of
+// these calculations (old bandwidth/multiplier, old RMA-based ATR midline,
+// closed-candle-only RSI) which is exactly why indicator values shown here
+// used to disagree with TradingView and with the backend logs. All indicator
+// values below are now read directly from the server's /state endpoint.
+
+function fmt(v, d=2){ return v!=null && !isNaN(v) ? parseFloat(v).toFixed(d) : '---'; }
+
+function setBadge(id,ok,text){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.className='ind-badge '+(ok?'ok':'bad');}
+
+// ===== TRADE MONITOR =====
+function fmtElapsed(ts){
+  const mins = Math.floor((Date.now()-ts)/60000);
+  if(mins<1) return 'just now';
+  if(mins<60) return mins+'m ago';
+  return Math.floor(mins/60)+'h '+(mins%60)+'m ago';
+}
+
+function closeTrade(reason){
+  trade = {active:false, entry:0, tp:0, sl:0, ts:0};
+  saveState();
+  document.getElementById('tradeCard').style.display='none';
+  document.getElementById('signalIcon').className='signal-icon wait';
+  document.getElementById('signalIcon').textContent='⏳';
+  document.getElementById('signalStatus').className='signal-status wait';
+  document.getElementById('signalStatus').textContent='Scanning';
+  document.getElementById('signalSub').textContent='Looking for the next setup...';
+}
+
+function updateTradePnl(price){
+  if(!trade.active) return;
+  const {entry, tp, sl} = trade;
+  const pnlPct = ((price-entry)/entry*100);
+  const range = tp - sl;
+  const pos = Math.max(0, Math.min(100, ((price-sl)/range)*100));
+
+  document.getElementById('pnlPct').textContent = (pnlPct>=0?'+':'')+pnlPct.toFixed(3)+'%';
+  const pEl = document.getElementById('pnlVal');
+  pEl.textContent = (pnlPct>=0?'+':'')+pnlPct.toFixed(3)+'%';
+  pEl.className = 'pnl-live-val '+(pnlPct>=0?'pos':'neg');
+  const fill = document.getElementById('progressFill');
+  fill.style.width = pos+'%';
+  fill.style.background = pnlPct>0.1 ? 'var(--green)' : pnlPct<-0.1 ? 'var(--red)' : 'var(--blue)';
+  document.getElementById('elapsed').textContent = fmtElapsed(trade.ts);
+
+  if(price >= tp){
+    trade = {active:false, entry:0, tp:0, sl:0, ts:0};
+    saveState();
+    document.getElementById('tradeCard').style.display='none';
+    document.getElementById('signalIcon').className='signal-icon buy';
+    document.getElementById('signalIcon').textContent='🏆';
+    document.getElementById('signalStatus').className='signal-status tphit';
+    document.getElementById('signalStatus').textContent='Take Profit Hit';
+    document.getElementById('signalSub').textContent='Target reached — trade closed automatically.';
+    sendNotif('🏆 TP HIT — PAXG/USDT', 'Entry: $'+entry.toFixed(2)+' → TP: $'+tp.toFixed(2), 'tp');
+    setTimeout(()=>{ document.getElementById('signalStatus').textContent='Scanning'; document.getElementById('signalSub').textContent='Looking for next setup...'; document.getElementById('signalIcon').className='signal-icon wait'; document.getElementById('signalIcon').textContent='⏳'; }, 6000);
+    return;
+  }
+  if(price <= sl){
+    trade = {active:false, entry:0, tp:0, sl:0, ts:0};
+    saveState();
+    document.getElementById('tradeCard').style.display='none';
+    document.getElementById('signalIcon').className='signal-icon no';
+    document.getElementById('signalIcon').textContent='🛑';
+    document.getElementById('signalStatus').className='signal-status slhit';
+    document.getElementById('signalStatus').textContent='Stop Loss Hit';
+    document.getElementById('signalSub').textContent='Stop reached — trade closed automatically.';
+    sendNotif('🛑 SL HIT — PAXG/USDT', 'Entry: $'+entry.toFixed(2)+' → SL: $'+sl.toFixed(2), 'sl');
+    setTimeout(()=>{ document.getElementById('signalStatus').textContent='Scanning'; document.getElementById('signalSub').textContent='Looking for next setup...'; document.getElementById('signalIcon').className='signal-icon wait'; document.getElementById('signalIcon').textContent='⏳'; }, 6000);
+  }
+}
+
+function restoreTradeUI(){
+  if(!trade.active) return;
+  document.getElementById('signalIcon').className='signal-icon buy';
+  document.getElementById('signalIcon').textContent='🟢';
+  document.getElementById('signalStatus').className='signal-status buy';
+  document.getElementById('signalStatus').textContent='LONG — Active';
+  document.getElementById('signalSub').textContent='Trade locked. Monitoring live price.';
+  document.getElementById('entryPx').textContent='$'+trade.entry.toFixed(2);
+  document.getElementById('tpLock').textContent='$'+trade.tp.toFixed(2);
+  document.getElementById('slLock').textContent='$'+trade.sl.toFixed(2);
+  document.getElementById('tradeCard').style.display='block';
+}
+
+// ===== FETCH & STRATEGY =====
+// All indicator values, the live setup-lock state, and trade data now come
+// directly from the backend (server.js TRUE LIVE state machine). This
+// function used to call Binance directly and recompute NW/ATR/RSI itself —
+// that duplicate logic has been removed; this is now a thin renderer for
+// whatever the server has already computed.
+
+async function fetchData(){
+  try{
+    const r = await fetch(SERVER_URL + '/state');
+    if(!r.ok) throw new Error('Server error');
+    const data = await r.json();
+    if(!data || !data.indicators) throw new Error('No indicator data yet');
+
+    const ind   = data.indicators;
+    const state = data.signalState || 'IDLE';     // IDLE | SETUP_LOCKED | WAITING_CONFIRMATION
+    const setup = data.signalSetup || null;        // frozen setup values while locked/waiting
+
+    // ----- Live price (trade WS already updates #price on every tick) -----
+    // Use it here only for the % change calc against the last closed candle.
+    const displayPrice = livePrice || ind.livePrice || ind.candleClose || 0;
+    if(ind.candleClose){
+      const chg = ((displayPrice - ind.candleClose) / ind.candleClose * 100);
+      const ce = document.getElementById('change');
+      ce.textContent = (chg>=0?'+':'')+chg.toFixed(3)+'%';
+      ce.className = 'hero-change '+(chg>=0?'pos':'neg');
+    }
+    if(ind.candleTime){
+      document.getElementById('candleTime').textContent = new Date(ind.candleTime).toLocaleTimeString('en-PK',{hour:'2-digit',minute:'2-digit'}) + ' ✓';
+    }
+
+    // ----- Live RSI (falls back to last-closed RSI if a tick hasn't arrived yet) -----
+    const rsiLive = ind.rsiLive!=null ? ind.rsiLive : ind.rsi;
+
+    // While a setup is LOCKED/WAITING, freeze the displayed reference levels
+    // to the values the server froze at lock time (Rule 6 — never re-show
+    // live-moving numbers for an already-locked setup).
+    const showNwLower  = (setup && setup.nwLower!=null)  ? setup.nwLower  : ind.nwLower;
+    const showAtrLower = (setup && setup.atrLower!=null) ? setup.atrLower : ind.atrLower;
+    const showRsi      = (state==='IDLE') ? rsiLive : (setup && setup.rsiAtLock!=null ? setup.rsiAtLock : rsiLive);
+
+    document.getElementById('nwLower').textContent  = '$'+fmt(showNwLower,2);
+    document.getElementById('nwUpper').textContent  = '$'+fmt(ind.nwUpper,2);
+    document.getElementById('atrLower').textContent = '$'+fmt(showAtrLower,2);
+    document.getElementById('rsiVal').textContent   = fmt(showRsi,1);
+
+    const nwTouched  = displayPrice <= showNwLower;
+    const rsiOversold = showRsi!=null && showRsi < 30;
+
+    setBadge('nwLowerS', state!=='IDLE' || nwTouched, state!=='IDLE' ? 'Locked' : (nwTouched?'Touched':'Above'));
+    setBadge('nwUpperS', false, 'Ref');
+    setBadge('atrLowerS', true, 'SL Ref');
+    setBadge('rsiS', state!=='IDLE' || rsiOversold, state!=='IDLE' ? 'Locked' : (rsiOversold?'Oversold':'Neutral'));
+
+    // ----- Checklist + state badge + signal card -----
+    const condCountEl = document.getElementById('condCount');
+    const checklist    = document.getElementById('checklist');
+    const icon   = document.getElementById('signalIcon');
+    const status = document.getElementById('signalStatus');
+    const sub    = document.getElementById('signalSub');
+    const tags   = document.getElementById('reasonTags');
+
+    if(trade.active){
+      // Active trade UI is owned by restoreTradeUI()/updateTradePnl(); just keep footer fresh.
+      document.getElementById('updateTime').textContent = 'Live: $'+displayPrice.toFixed(2)+' · State: '+state;
+      return;
+    }
+
+    if(state === 'IDLE'){
+      condCountEl.textContent = 'LIVE';
+      const liveSetupReady = nwTouched && rsiOversold;
+      checklist.innerHTML = `
+        <div class="check-row">
+          <div class="check-icon ${nwTouched?'pass':'fail'}">${nwTouched?'✓':'✕'}</div>
+          <div class="check-text ${nwTouched?'':'fail'}">Live price ≤ NW lower band</div>
+          <div class="check-val">$${fmt(displayPrice,2)}</div>
+        </div>
+        <div class="check-row">
+          <div class="check-icon ${rsiOversold?'pass':'fail'}">${rsiOversold?'✓':'✕'}</div>
+          <div class="check-text ${rsiOversold?'':'fail'}">Live RSI(6) below 30</div>
+          <div class="check-val">${fmt(showRsi,1)}</div>
+        </div>
+        <div class="check-row">
+          <div class="check-icon ${liveSetupReady?'pending':'fail'}">${liveSetupReady?'…':'✕'}</div>
+          <div class="check-text ${liveSetupReady?'':'fail'}">Bullish candle (checked after lock)</div>
+          <div class="check-val">${liveSetupReady?'pending':'—'}</div>
+        </div>
+      `;
+      const reasons = [];
+      if(!nwTouched) reasons.push('Price above NW lower band');
+      if(!rsiOversold) reasons.push('RSI not oversold ('+fmt(showRsi,1)+')');
+
+      icon.className='signal-icon wait'; icon.textContent='⏳';
+      status.className='signal-status wait';
+      status.textContent = (nwTouched||rsiOversold) ? 'Watching' : 'No Setup';
+      sub.textContent = reasons[0] || 'Conditions not met';
+      tags.innerHTML = reasons.map(r=>`<span class="reason-tag bad">${r}</span>`).join('');
+
+    } else if(state === 'SETUP_LOCKED'){
+      condCountEl.textContent = 'LOCKED';
+      checklist.innerHTML = `
+        <div class="check-row">
+          <div class="check-icon pass">✓</div>
+          <div class="check-text">NW + RSI confirmed (frozen)</div>
+          <div class="check-val">RSI ${fmt(setup?setup.rsiAtLock:null,1)}</div>
+        </div>
+        <div class="check-row">
+          <div class="check-icon pending">…</div>
+          <div class="check-text">Bullish close confirmation</div>
+          <div class="check-val">on this candle</div>
+        </div>
+      `;
+      icon.className='signal-icon wait'; icon.textContent='🔒';
+      status.className='signal-status wait';
+      status.textContent = 'Setup Locked';
+      sub.textContent = 'Waiting for this candle to close bullish.';
+      tags.innerHTML = `<span class="reason-tag ok">NW Touch</span><span class="reason-tag ok">RSI ${fmt(setup?setup.rsiAtLock:null,1)}</span>`;
+
+    } else if(state === 'WAITING_CONFIRMATION'){
+      condCountEl.textContent = 'WAITING';
+      checklist.innerHTML = `
+        <div class="check-row">
+          <div class="check-icon pass">✓</div>
+          <div class="check-text">NW + RSI confirmed (frozen)</div>
+          <div class="check-val">RSI ${fmt(setup?setup.rsiAtLock:null,1)}</div>
+        </div>
+        <div class="check-row">
+          <div class="check-icon fail">✕</div>
+          <div class="check-text fail">First candle closed bearish</div>
+        </div>
+        <div class="check-row">
+          <div class="check-icon pending">…</div>
+          <div class="check-text">Next candle — last chance</div>
+        </div>
+      `;
+      icon.className='signal-icon wait'; icon.textContent='⏳';
+      status.className='signal-status wait';
+      status.textContent = 'Waiting Confirmation';
+      sub.textContent = 'One more candle — bullish close still buys.';
+      tags.innerHTML = `<span class="reason-tag ok">Setup Locked</span><span class="reason-tag bad">1st candle bearish</span>`;
+    }
+
+    document.getElementById('updateTime').textContent = 'Live: $'+displayPrice.toFixed(2)+' · Refreshed: '+new Date().toLocaleTimeString('en-PK',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  }catch(e){
+    if(!trade.active){
+      document.getElementById('signalIcon').className='signal-icon loading';
+      document.getElementById('signalIcon').textContent='⚠️';
+      document.getElementById('signalStatus').className='signal-status loading';
+      document.getElementById('signalStatus').textContent='Error';
+      document.getElementById('signalSub').textContent=e.message+' — retrying...';
+    }
+  }
+}
+
+// ===================== PAGES =====================
+let journal = [];
+let activeFilter = 'all';
+
+function showPage(p){
+  ['signal','journal','stats'].forEach(x=>{
+    document.getElementById(x+'Page').classList.toggle('active', x===p);
+    document.getElementById('nav'+x.charAt(0).toUpperCase()+x.slice(1)+'Btn').classList.toggle('active', x===p);
+  });
+  if(p==='journal') renderJournal();
+  if(p==='stats') renderStats();
+}
+
+function renderJournal(){
+  const wins = journal.filter(j=>j.result==='win').length;
+  const losses = journal.filter(j=>j.result==='loss').length;
+  const total = wins+losses;
+  const winRate = total>0 ? ((wins/total)*100).toFixed(0) : 0;
+  const totalPnl = wins-losses;
+  document.getElementById('jWins').textContent = wins;
+  document.getElementById('jLosses').textContent = losses;
+  document.getElementById('jWinRate').textContent = winRate+'%';
+  const pEl = document.getElementById('jTotalPnl');
+  pEl.textContent = (totalPnl>=0?'+':'')+totalPnl+'%';
+  pEl.style.color = totalPnl>=0?'var(--green)':'var(--red)';
+
+  const filtered = activeFilter==='all' ? journal : journal.filter(j=>j.result===activeFilter);
+  const list = document.getElementById('journalList');
+  if(filtered.length===0){
+    list.innerHTML = '<div class="empty-state glass"><div class="ic">📭</div><p>No trades yet<br>A new entry appears here<br>the moment a LONG signal fires</p></div>';
+    return;
+  }
+  list.innerHTML = filtered.map(j=>`
+    <div class="j-item glass ${j.result}">
+      <div class="j-top">
+        <div class="j-sym">${j.sym}/USDT</div>
+        <div class="j-badge ${j.result}">${j.result==='win'?'✅ TP HIT':j.result==='loss'?'❌ SL HIT':j.result==='manual'?'⏹ MANUAL CLOSE':'🔵 OPEN'}</div>
+      </div>
+      <div class="j-prices">
+        <div class="j-pbox"><div class="j-plbl">Entry</div><div class="j-pval" style="color:var(--blue)">$${j.entry}</div></div>
+        <div class="j-pbox"><div class="j-plbl">TP</div><div class="j-pval" style="color:var(--green)">$${j.tp}</div></div>
+        <div class="j-pbox"><div class="j-plbl">SL</div><div class="j-pval" style="color:var(--red)">$${j.sl}</div></div>
+      </div>
+      <div class="j-bottom"><span>${j.date} · ${j.time}</span></div>
+    </div>
+  `).join('');
+}
+
+function filterJournal(f){
+  activeFilter = f;
+  ['all','win','loss'].forEach(x=>document.getElementById('filter'+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle('active', x===f));
+  renderJournal();
+}
+
+function clearJournal(){
+  if(confirm('Delete all trade history?')){ journal=[]; renderJournal(); }
+}
+
+function renderStats(){
+  const today = new Date().toLocaleDateString();
+  const todayT = journal.filter(j=>j.date===today && j.result!=='open');
+  const allT = journal.filter(j=>j.result!=='open');
+  const tPnl = todayT.reduce((a,b)=>a+(b.result==='manual'?0:(b.result==='win'?1:-1)),0);
+  const aPnl = allT.reduce((a,b)=>a+(b.result==='manual'?0:(b.result==='win'?1:-1)),0);
+  document.getElementById('todayTrades').textContent = todayT.length;
+  const tpEl = document.getElementById('todayPnl');
+  tpEl.textContent = (tPnl>=0?'+':'')+tPnl+'%';
+  tpEl.style.color = tPnl>=0?'var(--green)':'var(--red)';
+  document.getElementById('allTrades').textContent = allT.length;
+  const apEl = document.getElementById('allPnl');
+  apEl.textContent = (aPnl>=0?'+':'')+aPnl+'%';
+  apEl.style.color = aPnl>=0?'var(--green)':'var(--red)';
+  document.getElementById('bestTrade').textContent = allT.some(j=>j.result==='win') ? '+1.00 R' : '---';
+  document.getElementById('worstTrade').textContent = allT.some(j=>j.result==='loss') ? '-1.00 R' : '---';
+}
+
+// ===================== SERVER INTEGRATION =====================
+const SERVER_URL = 'https://signal-bot-server-production.up.railway.app';
+
+async function subscribeToServer(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const res = await fetch(SERVER_URL+'/vapid-public-key');
+    const {publicKey} = await res.json();
+    if(!publicKey) return;
+
+    const padding = '='.repeat((4 - publicKey.length % 4) % 4);
+    const base64 = (publicKey + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawKey = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: rawKey
+    });
+
+    await fetch(SERVER_URL+'/subscribe', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(subscription)
+    });
+    console.log('✅ Subscribed to server push notifications');
+  }catch(e){
+    console.log('Push subscribe error:', e.message);
+  }
+}
+
+async function syncFromServer(){
+  try{
+    const res = await fetch(SERVER_URL+'/state');
+    const data = await res.json();
+    if(!data || !data.trade) return;
+
+    const st = data.trade;
+    if(st.active && !trade.active){
+      trade = st;
+      saveState();
+      restoreTradeUI();
+    } else if(!st.active && trade.active){
+      trade = {active:false,entry:0,tp:0,sl:0,ts:0};
+      saveState();
+      closeTrade('server');
+    }
+
+    // Sync journal from server
+    if(data.journal && Array.isArray(data.journal)){
+      journal = data.journal;
+      if(document.getElementById('journalPage').classList.contains('active')) renderJournal();
+      if(document.getElementById('statsPage').classList.contains('active')) renderStats();
+    }
+  }catch(e){
+    console.log('Server sync error:', e.message);
+  }
+}
+
+// ===== INIT =====
+restoreTradeUI();
+connectWS();
+fetchData();
+startAuto();
+
+syncFromServer();
+setInterval(syncFromServer, 30000);
+
+if(Notification.permission==='granted'){
+  document.getElementById('notifBtn').textContent='✓ On';
+  document.getElementById('notifBtn').classList.add('on');
+  document.getElementById('notifStatus').textContent='Server notifications active!';
+  subscribeToServer();
+}
+
+setInterval(()=>{
+  if(trade.active){
+    const el=document.getElementById('elapsed');
+    if(el) el.textContent=fmtElapsed(trade.ts);
+  }
+},30000);
+</script>
+</body>
+</html>
